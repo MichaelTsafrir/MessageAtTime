@@ -33,9 +33,19 @@ app.post('/addMessage', (req, res) => {
                 const messageID = `message:${num}`;
 
                 // Add to a sorted list by the time our message
-                const addedToSortedList = client.ZADD(messageList, time, `message:${num}`);
+                client.ZADD(messageList, time, `message:${num}`, (err, redisResponse) => {
+                    if (err) {
+                        res.send(JSON.stringify({ status: 'error', message: `Redis: couldn't add to sorted list "${messageList}". Error: ${err}` }));
+                    }
+                    else if (!redisResponse){
+                        // Note: this error can't happen from cross servers, only by changing the redis manually
+                        res.send(JSON.stringify({ status: 'error', message: `Redis: couldn't add to sorted list "${messageList}". Duplicate ${messageID}` }));
+                    }
+                    else {
+                        res.send(JSON.stringify({ status: 'ok', messageID, addedToSortedList: true }));
+                    }
+                });
 
-                res.send(JSON.stringify({ status: 'ok', messageID, addedToSortedList }));
             }
         });
     }
