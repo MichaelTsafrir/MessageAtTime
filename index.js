@@ -1,8 +1,13 @@
 const express = require('express');
 const bodyParser = require('body-parser');
+const redis = require('redis');
+
+const port = 5040;
+const redisPort = 6379;
+const redisMessageList = "messageList";
 
 const app = express();
-const port = 5040;
+const client = redis.createClient(redisPort);
 
 // Use bodyParser Middleware to fetch body params
 app.use(bodyParser.urlencoded({ extended: false }));
@@ -18,7 +23,8 @@ app.post('/addMessage', (req, res) => {
         res.send(JSON.stringify({ status: 'error', message: 'time param is not in epoch time, expected number' }));
     }
     else {
-        res.send(JSON.stringify({ status: 'ok' }));
+        const redisStatus = client.set(time, message);
+        res.send(JSON.stringify({ status: 'ok', redisStatus }));
     }
 });
 
