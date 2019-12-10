@@ -11,8 +11,15 @@ app.post('/addMessage', (req, res) => {
     const message = req.body.message;
     const time = req.body.time;
     
-
-    res.send(`got ${message} and ${time}`);
+    if (!message || !time) {
+        res.send(JSON.stringify({ status: 'error', message: 'missing message or time params in request' }));
+    }
+    else if (isNaN(time)) {
+        res.send(JSON.stringify({ status: 'error', message: 'time param is not in epoch time, expected number' }));
+    }
+    else {
+        res.send(JSON.stringify({ status: 'ok' }));
+    }
 });
 
 app.listen(port, () => console.log(`Listening on port ${port}`));
