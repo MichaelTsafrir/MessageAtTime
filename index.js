@@ -42,7 +42,10 @@ app.post('/addMessage', (req, res) => {
                         res.send(JSON.stringify({ status: 'error', message: `Redis: couldn't add to sorted list "${messageList}". Duplicate ${messageID}` }));
                     }
                     else {
-                        res.send(JSON.stringify({ status: 'ok', messageID, addedToSortedList: true }));
+                        // Message was added to sorted list, save message
+                        client.set(messageID, message);
+
+                        res.send(JSON.stringify({ status: 'ok', messageID }));
                     }
                 });
 
