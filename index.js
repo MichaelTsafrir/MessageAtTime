@@ -1,11 +1,15 @@
 const express = require('express');
 const bodyParser = require('body-parser');
 const redis = require('redis');
+const fetchConfig = require('zero-config');
 
-const port = 5040;
-const redisPort = 6379;
-const messageList = "messageList";
-const messageKey = "messageKey";
+const config = fetchConfig(__dirname, {});
+
+const port = config.get("port") || 5040;
+const redisHost = config.get("redis.host") || "localhost";
+const redisPort = config.get("redis.port") || 6379;
+const messageList = config.get("redis.messageList") || "messageList";
+const messageKey = config.get("redis.messageKey") || "messageKey";
 
 const app = express();
 const client = redis.createClient(redisPort);
@@ -28,7 +32,7 @@ const fetchMessage = () => client.zrange(messageList, 0, 0, 'withscores', (err, 
         const messageTime = parseInt(messageSet[1]);
         const now = Date.now() / 1000; // Get epoch time in seconds
 
-        if (messageTime < now) {
+        if (messageTime <= now) {
             client.get(messageID, (err, message) => {
                 if (err) {
                     return console.error(`Redis: error when fetching "${messageID}". Error: ${err}`);
@@ -59,7 +63,7 @@ const fetchMessage = () => client.zrange(messageList, 0, 0, 'withscores', (err, 
 });
 
 // Run from the earliest message that exists
-fetchMessage(0);
+fetchMessage();
 
 // Use bodyParser Middleware to fetch body params
 app.use(bodyParser.urlencoded({ extended: false }));
@@ -84,7 +88,7 @@ app.post('/addMessage', (req, res) => {
                 const messageID = `message:${num}`;
 
                 // Add to a sorted list by the time our message
-                client.ZADD(messageList, time, `message:${num}`, (err, redisResponse) => {
+                client.ZADD(messageList, time, messageID, (err, redisResponse) => {
                     if (err) {
                         responseError(res, `Redis: couldn't add to sorted list "${messageList}". Error: ${err}`);
                     }

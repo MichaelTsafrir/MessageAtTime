@@ -1,0 +1,9 @@
+{
+    "port": 5040,
+    "redis": {
+        "host": "localhost",
+        "port": 6379,
+        "messageList": "messageList",
+        "messageKey": "messageKey"
+    }
+}
