@@ -11,24 +11,22 @@
 version: '3'
 services:
   app_1:
-    build: .
+    build: ./images/app
     ports:
       - "4000:3000"
     depends_on:
       - redis
   app_2:
-    build: .
+    build: ./images/app
     ports:
       - "4001:3000"
     depends_on:
       - redis
   app_3:
-    build: .
+    build: ./images/app
     ports:
       - "4002:3000"
     depends_on:
       - redis
   redis:
-    image: "redis"
-    volumes:
-      - ./config/redis.conf:/usr/local/etc/redis/redis.conf:ro
+    build: ./images/redis

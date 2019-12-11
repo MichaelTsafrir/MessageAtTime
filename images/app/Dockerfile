@@ -9,7 +9,7 @@ RUN apt-get install -y nodejs
 RUN apt-get install -y npm
 
 # add program to container
-ADD . /MessageAtTime
+ADD ../../ /MessageAtTime
 
 # set working directory
 WORKDIR /MessageAtTime
