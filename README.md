@@ -1,6 +1,10 @@
 # Message At Time
 a node server that sends messages at an accurate time using Redis
 
+- Supports multiple servers
+- saves data persistenly to prevent data loss
+- times messages for the future
+
 ### Redis Configuration
 In order to prevent dataloss, redis needs to be set with persistence. This will make Redis save the data on the disk, making it slower, but preventing data loss on crash
 

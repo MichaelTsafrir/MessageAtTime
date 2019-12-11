@@ -105,6 +105,7 @@ clientListener.subscribe(`__keyspace@0__:${messageList}`).then(() => console.log
 
 clientListener.on("message",  async (channel, message) => {
     if (message == "zadd") {
+        console.log("Channel: new message was added")
         fetchMessage();
     }
 });
