@@ -56,8 +56,12 @@ You can change any of the given params also from the command line when running t
 
 ### Docker
 Notice the config is set with host as "redis". The containers are mapped by this name.
+
 The docker compose is set to build 3 servers, on ports 4000, 4001, 4002. If you desire to build only one, simply use the code in the comment in docker-compose.yaml
 run
+
 `docker-compose up -d`
+
 In order to watch logs, use
+
 `docker-compose logs -f app_1 app_2 app_3`
