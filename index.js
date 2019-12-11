@@ -4,6 +4,7 @@ const ioredis = require('ioredis');
 const fetchConfig = require('zero-config');
 const redisLock = require('redis-lock');
 const { promisify } = require('util'); 
+const dayjs = require('dayjs');
 
 const config = fetchConfig(__dirname, {});
 
@@ -18,12 +19,15 @@ const client = new ioredis(redisPort, redisHost);
 const clientListener = new ioredis(redisPort, redisHost);
 const lock = promisify(redisLock(client));
 
+let nextMessage;
+
 // Send an error response
 const responseError = (response, message) => response.send(JSON.stringify({ status: 'error', message }));
-clientListener.set("test", "123");
+
 // Get the earliest message that exists
-const fetchMessage = async () => {
+const fetchMessage = async (isRecursive = false) => {
     try {
+        // Take the first (earliest) message
         const messageSet = await client.zrange(messageList, 0, 0, 'withscores');
 
         if (!messageSet.length) {
@@ -41,9 +45,12 @@ const fetchMessage = async () => {
                 const unlock = await lock(messageList);
 
                 try {
+                    // Fetch message by ID
                     const message = await client.get(messageID);
 
-                    console.log(message);
+                    console.log('--------------------- New Message ---------------------');
+                    console.log(`(${dayjs(messageTime * 1000).format('DD/MM/YY HH:mm:ss')}): ${message}`);
+                    console.log('-------------------------------------------------------');
 
                     try {
                         // Delete message
@@ -57,8 +64,9 @@ const fetchMessage = async () => {
                             throw "Redis failed excecuting zrem & del multi tasks";
                         }
 
-                        // Check next message
-                        return fetchMessage();
+                        if (isRecursive) {
+                            return fetchMessage();
+                        }
                     }
                     catch(e) {
                         return console.error(`Redis: Couldn't delete "${messageID}"". Error: ${e}`);
@@ -71,6 +79,15 @@ const fetchMessage = async () => {
                     unlock();
                 }
             }
+            else if (!nextMessage || messageTime < nextMessage){
+                // Save the message as next message
+                nextMessage = messageTime;
+    
+                // Fetch message on that time
+                setTimeout(() => {
+                    fetchMessage();
+                }, (messageTime * 1000) - Date.now());
+            }
         }
     }
     catch(e) {
@@ -78,18 +95,17 @@ const fetchMessage = async () => {
     }
 };
 
-// Run from the earliest message that exists
-fetchMessage();
-
 // Subscribe to ZADD event
-clientListener.subscribe(`__keyspace@0__:${messageList}`).then((res) => console.log(`Listening on ${res} channel/s`));
+clientListener.subscribe(`__keyspace@0__:${messageList}`).then(() => console.log(`Subscribed to "${messageList}" events`));
 
-clientListener.on("message",  (channel, message) => {
+clientListener.on("message",  async (channel, message) => {
     if (message == "zadd") {
-        // a new message was added!
-        console.log("a new message was added!")
+        fetchMessage();
     }
 });
+
+// Run from the earliest message that exists recursivly
+fetchMessage(true);
 
 // Use bodyParser Middleware to fetch body params
 app.use(bodyParser.urlencoded({ extended: false }));
