@@ -14,13 +14,21 @@ services:
     build: .
     ports:
       - "4000:3000"
+    depends_on:
+      - redis
   app_2:
     build: .
     ports:
       - "4001:3000"
+    depends_on:
+      - redis
   app_3:
     build: .
     ports:
       - "4002:3000"
+    depends_on:
+      - redis
   redis:
     image: "redis"
+    volumes:
+      - ./config/redis.conf:/usr/local/etc/redis/redis.conf:ro

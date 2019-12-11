@@ -64,7 +64,7 @@ const fetchMessage = async (isRecursive = false) => {
 
                             // redis return int 1 or 0 for success/failure
                             if (!redisResponse[0][1] || !redisResponse[1][1]) {
-                                throw "Redis failed excecuting zrem & del multi tasks";
+                                throw new Error("Redis failed excecuting zrem & del multi tasks");
                             }
 
                             if (isRecursive) {
@@ -141,7 +141,7 @@ app.post('/addMessage', async (req, res) => {
                     .exec();
 
                 if (!redisResponse[0][1] || !redisResponse[1][1]) {
-                    throw "Redis failed excecuting zadd & set multi tasks";
+                    throw new Error("Redis failed excecuting zadd & set multi tasks");
                 }
 
                 res.send(JSON.stringify({ status: 'ok', messageID }));
