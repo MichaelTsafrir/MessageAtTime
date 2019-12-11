@@ -1,0 +1,26 @@
+# Use this to run one server only
+#version: '3'
+#services:
+#  web:
+#    build: .
+#    ports:
+#      - "4000:3000"
+#  redis:
+#    image: "redis"
+
+version: '3'
+services:
+  app_1:
+    build: .
+    ports:
+      - "4000:3000"
+  app_2:
+    build: .
+    ports:
+      - "4001:3000"
+  app_3:
+    build: .
+    ports:
+      - "4002:3000"
+  redis:
+    image: "redis"
