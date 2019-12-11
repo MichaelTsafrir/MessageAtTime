@@ -15,11 +15,12 @@ const messageKey = config.get("redis.messageKey") || "messageKey";
 
 const app = express();
 const client = new ioredis(redisPort, redisHost);
+const clientListener = new ioredis(redisPort, redisHost);
 const lock = promisify(redisLock(client));
 
 // Send an error response
 const responseError = (response, message) => response.send(JSON.stringify({ status: 'error', message }));
-
+clientListener.set("test", "123");
 // Get the earliest message that exists
 const fetchMessage = async () => {
     try {
@@ -64,7 +65,7 @@ const fetchMessage = async () => {
                     }
                 }
                 catch(e) {
-                    return console.error(`Redis: error when fetching "${messageID}". Error: ${err}`);
+                    return console.error(`Redis: error when fetching "${messageID}". Error: ${e}`);
                 }
                 finally {
                     unlock();
@@ -79,6 +80,16 @@ const fetchMessage = async () => {
 
 // Run from the earliest message that exists
 fetchMessage();
+
+// Subscribe to ZADD event
+clientListener.subscribe(`__keyspace@0__:${messageList}`).then((res) => console.log(`Listening on ${res} channel/s`));
+
+clientListener.on("message",  (channel, message) => {
+    if (message == "zadd") {
+        // a new message was added!
+        console.log("a new message was added!")
+    }
+});
 
 // Use bodyParser Middleware to fetch body params
 app.use(bodyParser.urlencoded({ extended: false }));
@@ -118,7 +129,7 @@ app.post('/addMessage', async (req, res) => {
             }
         }
         catch(e) {
-            responseError(res, `Redis: couldn't increment ${messageKey}. Error: ${err}`);
+            responseError(res, `Redis: couldn't increment ${messageKey}. Error: ${e}`);
         }
     }
 });
