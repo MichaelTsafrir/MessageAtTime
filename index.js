@@ -2,6 +2,8 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const ioredis = require('ioredis');
 const fetchConfig = require('zero-config');
+const redisLock = require('redis-lock');
+const { promisify } = require('util'); 
 
 const config = fetchConfig(__dirname, {});
 
@@ -13,6 +15,7 @@ const messageKey = config.get("redis.messageKey") || "messageKey";
 
 const app = express();
 const client = new ioredis(redisPort, redisHost);
+const lock = promisify(redisLock(client));
 
 // Send an error response
 const responseError = (response, message) => response.send(JSON.stringify({ status: 'error', message }));
@@ -33,6 +36,9 @@ const fetchMessage = async () => {
             const now = Date.now() / 1000; // Get epoch time in seconds
 
             if (messageTime <= now) {
+                // Lock list to prevent other servers modifying
+                const unlock = await lock(messageList);
+
                 try {
                     const message = await client.get(messageID);
 
@@ -59,6 +65,9 @@ const fetchMessage = async () => {
                 }
                 catch(e) {
                     return console.error(`Redis: error when fetching "${messageID}". Error: ${err}`);
+                }
+                finally {
+                    unlock();
                 }
             }
         }
