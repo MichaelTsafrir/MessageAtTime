@@ -48,35 +48,40 @@ const fetchMessage = async (isRecursive = false) => {
                     // Fetch message by ID
                     const message = await client.get(messageID);
 
-                    console.log('--------------------- New Message ---------------------');
-                    console.log(`(${dayjs(messageTime * 1000).format('DD/MM/YY HH:mm:ss')}): ${message}`);
-                    console.log('-------------------------------------------------------');
+                    // Check that message already wasn't read & deleted by another server
+                    if (message) {
+                        console.log('--------------------- New Message ---------------------');
+                        console.log(`(${dayjs(messageTime * 1000).format('DD/MM/YY HH:mm:ss')}): ${message}`);
+                        console.log('-------------------------------------------------------');
 
-                    try {
-                        // Delete message
-                        const redisResponse = await client.
-                            multi()
-                            .zrem(messageList, messageID)
-                            .del(messageID)
-                            .exec();
+                        try {
+                            // Delete message
+                            const redisResponse = await client.
+                                multi()
+                                .zrem(messageList, messageID)
+                                .del(messageID)
+                                .exec();
 
-                        if (!redisResponse[0][1] || !redisResponse[1][1]) {
-                            throw "Redis failed excecuting zrem & del multi tasks";
+                            // redis return int 1 or 0 for success/failure
+                            if (!redisResponse[0][1] || !redisResponse[1][1]) {
+                                throw "Redis failed excecuting zrem & del multi tasks";
+                            }
+
+                            if (isRecursive) {
+                                // Call fetch message recursivly to go through all earlier messages
+                                return fetchMessage(true);
+                            }
                         }
-
-                        if (isRecursive) {
-                            return fetchMessage();
+                        catch(e) {
+                            return console.error(`Redis: Couldn't delete "${messageID}"". Error: ${e}`);
                         }
-                    }
-                    catch(e) {
-                        return console.error(`Redis: Couldn't delete "${messageID}"". Error: ${e}`);
                     }
                 }
                 catch(e) {
                     return console.error(`Redis: error when fetching "${messageID}". Error: ${e}`);
                 }
                 finally {
-                    unlock();
+                    await unlock();
                 }
             }
             else if (!nextMessage || messageTime < nextMessage){

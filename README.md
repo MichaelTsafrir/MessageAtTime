@@ -3,12 +3,16 @@ a node server that sends messages at an accurate time using Redis
 
 ### Redis Configuration
 In order to prevent dataloss, redis needs to be set with persistence. This will make Redis save the data on the disk, making it slower, but preventing data loss on crash
+
 `127.0.0.1:6379> config set appendonly yes`
+
 The server is listening to the event of ZADD, knowing when a new message is added. In order to do so, you need to enable in the configuration the notify-keyspace-event to the string "Kz" (K - listen to event. z - listen to sorted set commands)
+
 `127.0.0.1:6379> config set notify-keyspace-events Kz`
 
 ### How to run
 Go to the server's directory and run
+
 `node index.js`
 
 ### API
