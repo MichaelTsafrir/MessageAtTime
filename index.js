@@ -40,28 +40,21 @@ const fetchMessage = async () => {
 
                     try {
                         // Delete message
-                        const wasRemoved = await client.zrem(messageList, messageID);
+                        const redisResponse = await client.
+                            multi()
+                            .zrem(messageList, messageID)
+                            .del(messageID)
+                            .exec();
 
-                        if (!wasRemoved) {
-                            throw "Redis failed zrem operaion";
-                        }
-
-                        try {
-                            const wasRemoved = await client.del(messageID);
-
-                            if (!wasRemoved) {
-                                throw "Redis failed del operaion";
-                            }
-                        }
-                        catch(e) {
-                            console.error(`Redis: Couldn't delete "${messageID}". Error: ${err}`);
+                        if (!redisResponse[0][1] || !redisResponse[1][1]) {
+                            throw "Redis failed excecuting zrem & del multi tasks";
                         }
 
                         // Check next message
                         return fetchMessage();
                     }
                     catch(e) {
-                        return console.error(`Redis: Couldn't delete "${messageID}" from "${messageList}". Error: ${e}`);
+                        return console.error(`Redis: Couldn't delete "${messageID}"". Error: ${e}`);
                     }
                 }
                 catch(e) {
@@ -99,20 +92,17 @@ app.post('/addMessage', async (req, res) => {
 
             try {
                 // Add to a sorted list by the time our message
-                const redisResponse = await client.zadd(messageList, time, messageID);
+                const redisResponse = await client
+                    .multi()
+                    .zadd(messageList, time, messageID)
+                    .set(messageID, message)
+                    .exec();
 
-                if (!redisResponse) {
-                    throw "Redis failed excecuting zadd";
+                if (!redisResponse[0][1] || !redisResponse[1][1]) {
+                    throw "Redis failed excecuting zadd & set multi tasks";
                 }
 
-                try {
-                    // Message was added to sorted list, save message
-                    await client.set(messageID, message);
-                    res.send(JSON.stringify({ status: 'ok', messageID }));
-                }
-                catch(e) {
-                    responseError(res, `Redis: couldn't add set "${messageList}". Error: ${e}`);
-                }
+                res.send(JSON.stringify({ status: 'ok', messageID }));
             }
             catch(e) {
                 responseError(res, `Redis: couldn't add to sorted list "${messageList}". Error: ${e}`);
